@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkAlert PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-xl">
+    <h1 class="text-2xl font-bold mb-4">📡 LinkAlert PRO</h1>
+    <div class="mb-4">
+      <input id="urlInput" type="text" placeholder="Inserisci un link da monitorare..." class="w-full p-2 border rounded mb-2" />
+      <input id="daysInput" type="number" placeholder="Giorni da controllare (es. 7)" class="w-full p-2 border rounded" />
+    </div>
+    <button onclick="addLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mb-4">Aggiungi</button>
+    <h2 class="text-xl font-semibold mb-2">📋 Link monitorati</h2>
+    <div id="linkList" class="space-y-2"></div>
+  </div>
+
+  <script>
+    let links = [];
+
+    function addLink() {
+      const url = document.getElementById('urlInput').value.trim();
+      const days = parseInt(document.getElementById('daysInput').value.trim());
+      if (!url || !days || isNaN(days)) return alert("Inserisci un link valido e il numero di giorni.");
+
+      const link = { url, days, lastHash: null, lastChecked: null };
+      links.push(link);
+      document.getElementById('urlInput').value = '';
+      document.getElementById('daysInput').value = '';
+      renderLinks();
+    }
+
+    async function renderLinks() {
+      const container = document.getElementById('linkList');
+      container.innerHTML = '';
+
+      for (let i = 0; i < links.length; i++) {
+        const link = links[i];
+        const res = await fetch(`/api/check?url=${encodeURIComponent(link.url)}`);
+        const data = await res.json();
+
+        const hasChanged = link.lastHash && link.lastHash !== data.hash;
+        const statusText = hasChanged ? '🟥 Modificato' : '🟩 Invariato';
+
+        link.lastHash = data.hash;
+        link.lastChecked = new Date().toLocaleString();
+
+        container.innerHTML += `
+          <div class="border p-3 rounded bg-gray-50">
+            <div class="font-semibold">🔗 ${link.url}</div>
+            <div class="text-sm text-gray-600">Ultimo check: ${link.lastChecked}</div>
+            <div class="text-sm font-medium">Stato: ${statusText}</div>
+          </div>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
